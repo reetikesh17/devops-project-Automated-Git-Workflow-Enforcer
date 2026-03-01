@@ -21,6 +21,7 @@ from utils.constants import ExitCode, APP_NAME, APP_VERSION, APP_DESCRIPTION
 from utils.formatter import format_validation_report, format_error, format_success, format_ci_output
 from utils.logger import setup_logger, setup_ci_logger
 from utils.colors import Colors, colorize
+from utils.git_utils import get_current_branch, get_latest_commit_message, GitError as UtilsGitError
 
 
 class GitWorkflowEnforcer:
@@ -75,16 +76,30 @@ class GitWorkflowEnforcer:
             return 0 if code == ExitCode.SUCCESS else 1
         return code
 
-    def validate_commit(self, message):
+    def validate_commit(self, message=None):
         """
         Validate a commit message
         
         Args:
-            message (str): Commit message to validate
+            message (str, optional): Commit message to validate.
+                                    If None, uses latest commit message.
             
         Returns:
             int: Exit code (0 or 1 in CI mode)
         """
+        # Auto-detect commit message if not provided
+        if message is None:
+            try:
+                message = get_latest_commit_message()
+                self.logger.info(f"Auto-detected commit message: {message[:50]}...")
+            except UtilsGitError as e:
+                self.logger.error(f"Failed to get commit message: {e}")
+                if not self.ci_mode:
+                    print(format_error(str(e), "Git Error"))
+                else:
+                    print(json.dumps({'error': 'git_error', 'message': str(e)}))
+                return self._normalize_exit_code(ExitCode.GIT_ERROR)
+        
         self.logger.info("Validating commit message...")
         
         try:
@@ -118,21 +133,24 @@ class GitWorkflowEnforcer:
         Validate a branch name
         
         Args:
-            branch_name (str, optional): Branch name to validate
+            branch_name (str, optional): Branch name to validate.
+                                        If None, uses current branch.
             
         Returns:
             int: Exit code (0 or 1 in CI mode)
         """
         try:
-            # Get current branch if not provided
+            # Auto-detect current branch if not provided
             if branch_name is None:
                 try:
-                    branch_name = self.branch_validator.get_current_branch()
-                    self.logger.info(f"Validating current branch: {branch_name}")
-                except GitError as e:
+                    branch_name = get_current_branch()
+                    self.logger.info(f"Auto-detected current branch: {branch_name}")
+                except UtilsGitError as e:
                     self.logger.error(str(e))
                     if not self.ci_mode:
                         print(format_error(str(e), "Git Error"))
+                    else:
+                        print(json.dumps({'error': 'git_error', 'message': str(e)}))
                     return self._normalize_exit_code(ExitCode.GIT_ERROR)
             else:
                 self.logger.info(f"Validating branch name: {branch_name}")
@@ -159,6 +177,8 @@ class GitWorkflowEnforcer:
             self.logger.error(f"Git error: {e}")
             if not self.ci_mode:
                 print(format_error(str(e), "Git Error"))
+            else:
+                print(json.dumps({'error': 'git_error', 'message': str(e)}))
             return self._normalize_exit_code(ExitCode.GIT_ERROR)
         except Exception as e:
             self.logger.error(f"Unexpected error during validation: {e}")
@@ -167,13 +187,15 @@ class GitWorkflowEnforcer:
                 traceback.print_exc()
             return self._normalize_exit_code(ExitCode.RUNTIME_ERROR)
 
-    def validate_all(self, branch_name, commit_message):
+    def validate_all(self, branch_name=None, commit_message=None):
         """
         Validate both branch name and commit message
         
         Args:
-            branch_name (str): Branch name to validate
-            commit_message (str): Commit message to validate
+            branch_name (str, optional): Branch name to validate.
+                                        If None, uses current branch.
+            commit_message (str, optional): Commit message to validate.
+                                           If None, uses latest commit.
             
         Returns:
             int: Exit code (0 or 1 in CI mode)
@@ -181,6 +203,32 @@ class GitWorkflowEnforcer:
         self.logger.info("Running full validation...")
 
         try:
+            # Auto-detect branch if not provided
+            if branch_name is None:
+                try:
+                    branch_name = get_current_branch()
+                    self.logger.info(f"Auto-detected branch: {branch_name}")
+                except UtilsGitError as e:
+                    self.logger.error(f"Failed to get branch: {e}")
+                    if not self.ci_mode:
+                        print(format_error(str(e), "Git Error"))
+                    else:
+                        print(json.dumps({'error': 'git_error', 'message': str(e)}))
+                    return self._normalize_exit_code(ExitCode.GIT_ERROR)
+            
+            # Auto-detect commit message if not provided
+            if commit_message is None:
+                try:
+                    commit_message = get_latest_commit_message()
+                    self.logger.info(f"Auto-detected commit: {commit_message[:50]}...")
+                except UtilsGitError as e:
+                    self.logger.error(f"Failed to get commit message: {e}")
+                    if not self.ci_mode:
+                        print(format_error(str(e), "Git Error"))
+                    else:
+                        print(json.dumps({'error': 'git_error', 'message': str(e)}))
+                    return self._normalize_exit_code(ExitCode.GIT_ERROR)
+            
             branch_result = self.branch_validator.validate_detailed(branch_name)
             commit_result = self.commit_validator.validate_detailed(commit_message)
 
@@ -297,7 +345,9 @@ def create_parser():
     )
     commit_parser.add_argument(
         'message',
-        help='commit message to validate'
+        nargs='?',
+        help='commit message to validate (default: latest commit message)',
+        default=None
     )
 
     # validate-branch command
@@ -321,11 +371,15 @@ def create_parser():
     )
     all_parser.add_argument(
         'branch',
-        help='branch name to validate'
+        nargs='?',
+        help='branch name to validate (default: current branch)',
+        default=None
     )
     all_parser.add_argument(
         'message',
-        help='commit message to validate'
+        nargs='?',
+        help='commit message to validate (default: latest commit message)',
+        default=None
     )
 
     return parser
