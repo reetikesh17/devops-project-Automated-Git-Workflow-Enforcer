@@ -43,18 +43,13 @@ class GitWorkflowEnforcer:
     def validate_commit(self, message):
         """Validate a commit message"""
         self.logger.info("Validating commit message...")
-        result = self.commit_validator.validate(message)
-
-        if result['valid']:
-            print(f"✓ Valid commit message: {result['type']}")
+        
+        # Use the boolean validate method
+        is_valid = self.commit_validator.validate(message)
+        
+        if is_valid:
             return EXIT_SUCCESS
         else:
-            print(f"✗ Invalid commit message\n")
-            print(f"Error: {result['error']}")
-            if 'suggestions' in result:
-                print(f"\nSuggestions:")
-                for suggestion in result['suggestions']:
-                    print(f"  • {suggestion}")
             return EXIT_VALIDATION_ERROR
 
     def validate_branch(self, branch_name):
@@ -79,7 +74,7 @@ class GitWorkflowEnforcer:
         self.logger.info("Running full validation...")
 
         branch_result = self.branch_validator.validate(branch_name)
-        commit_result = self.commit_validator.validate(commit_message)
+        commit_result = self.commit_validator.validate_detailed(commit_message)
 
         print("=" * 60)
         print("VALIDATION REPORT")
