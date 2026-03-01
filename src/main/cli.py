@@ -55,25 +55,20 @@ class GitWorkflowEnforcer:
     def validate_branch(self, branch_name):
         """Validate a branch name"""
         self.logger.info(f"Validating branch name: {branch_name}")
-        result = self.branch_validator.validate(branch_name)
-
-        if result['valid']:
-            print(f"✓ Valid branch name: {result['type']}")
+        
+        # Use the boolean validate method
+        is_valid = self.branch_validator.validate(branch_name)
+        
+        if is_valid:
             return EXIT_SUCCESS
         else:
-            print(f"✗ Invalid branch name\n")
-            print(f"Error: {result['error']}")
-            if 'examples' in result:
-                print(f"\nExpected formats:")
-                for example in result['examples']:
-                    print(f"  • {example}")
             return EXIT_VALIDATION_ERROR
 
     def validate_all(self, branch_name, commit_message):
         """Validate both branch name and commit message"""
         self.logger.info("Running full validation...")
 
-        branch_result = self.branch_validator.validate(branch_name)
+        branch_result = self.branch_validator.validate_detailed(branch_name)
         commit_result = self.commit_validator.validate_detailed(commit_message)
 
         print("=" * 60)
