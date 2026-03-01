@@ -1,0 +1,188 @@
+name: 'Git Workflow Enforcer'
+description: 'Validate Git branch names and commit messages against Conventional Commits'
+author: 'DevOps Team'
+
+branding:
+  icon: 'check-circle'
+  color: 'green'
+
+inputs:
+  config-path:
+    description: 'Path to custom configuration file (optional)'
+    required: false
+    default: ''
+  
+  python-version:
+    description: 'Python version to use'
+    required: false
+    default: '3.11'
+  
+  validate-branch:
+    description: 'Validate branch name (true/false)'
+    required: false
+    default: 'true'
+  
+  validate-commit:
+    description: 'Validate commit message (true/false)'
+    required: false
+    default: 'true'
+  
+  branch-name:
+    description: 'Branch name to validate (auto-detected if not provided)'
+    required: false
+    default: ''
+  
+  commit-message:
+    description: 'Commit message to validate (auto-detected if not provided)'
+    required: false
+    default: ''
+  
+  fail-on-error:
+    description: 'Fail the action if validation fails'
+    required: false
+    default: 'true'
+
+outputs:
+  validation-status:
+    description: 'Overall validation status (pass/fail)'
+    value: ${{ steps.validate.outputs.status }}
+  
+  branch-valid:
+    description: 'Branch validation result (true/false)'
+    value: ${{ steps.validate.outputs.branch-valid }}
+  
+  commit-valid:
+    description: 'Commit validation result (true/false)'
+    value: ${{ steps.validate.outputs.commit-valid }}
+  
+  validation-output:
+    description: 'Full validation output (JSON)'
+    value: ${{ steps.validate.outputs.output }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+        cache: 'pip'
+    
+    - name: 📦 Install dependencies
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f "${{ github.action_path }}/requirements.txt" ]; then
+          pip install -r "${{ github.action_path }}/requirements.txt"
+        fi
+    
+    - name: 🔍 Run validation
+      id: validate
+      shell: bash
+      run: |
+        set +e  # Don't exit on error, we'll handle it
+        
+        # Build command
+        cmd="python ${{ github.action_path }}/src/main/cli.py --ci"
+        
+        # Add config path if provided
+        if [ -n "${{ inputs.config-path }}" ]; then
+          cmd="$cmd --config ${{ inputs.config-path }}"
+        fi
+        
+        # Determine what to validate
+        if [ "${{ inputs.validate-branch }}" = "true" ] && [ "${{ inputs.validate-commit }}" = "true" ]; then
+          # Validate both
+          cmd="$cmd validate-all"
+          
+          # Add branch if provided
+          if [ -n "${{ inputs.branch-name }}" ]; then
+            cmd="$cmd ${{ inputs.branch-name }}"
+          fi
+          
+          # Add commit if provided
+          if [ -n "${{ inputs.commit-message }}" ]; then
+            cmd="$cmd \"${{ inputs.commit-message }}\""
+          fi
+          
+        elif [ "${{ inputs.validate-branch }}" = "true" ]; then
+          # Validate branch only
+          cmd="$cmd validate-branch"
+          
+          if [ -n "${{ inputs.branch-name }}" ]; then
+            cmd="$cmd ${{ inputs.branch-name }}"
+          fi
+          
+        elif [ "${{ inputs.validate-commit }}" = "true" ]; then
+          # Validate commit only
+          cmd="$cmd validate-commit"
+          
+          if [ -n "${{ inputs.commit-message }}" ]; then
+            cmd="$cmd \"${{ inputs.commit-message }}\""
+          fi
+        else
+          echo "::error::At least one of validate-branch or validate-commit must be true"
+          exit 1
+        fi
+        
+        # Run validation and capture output
+        echo "Running: $cmd"
+        output=$(eval $cmd 2>&1)
+        exit_code=$?
+        
+        # Save output
+        echo "$output" > validation-output.json
+        echo "output<<EOF" >> $GITHUB_OUTPUT
+        echo "$output" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+        # Parse JSON output to extract validation results
+        if command -v jq &> /dev/null; then
+          if [ "${{ inputs.validate-branch }}" = "true" ] && [ "${{ inputs.validate-commit }}" = "true" ]; then
+            branch_valid=$(echo "$output" | jq -r '.branch.valid // false')
+            commit_valid=$(echo "$output" | jq -r '.commit.valid // false')
+            overall_valid=$(echo "$output" | jq -r '.overall.valid // false')
+          elif [ "${{ inputs.validate-branch }}" = "true" ]; then
+            branch_valid=$(echo "$output" | jq -r '.valid // false')
+            commit_valid="true"
+            overall_valid="$branch_valid"
+          else
+            branch_valid="true"
+            commit_valid=$(echo "$output" | jq -r '.valid // false')
+            overall_valid="$commit_valid"
+          fi
+          
+          echo "branch-valid=$branch_valid" >> $GITHUB_OUTPUT
+          echo "commit-valid=$commit_valid" >> $GITHUB_OUTPUT
+        else
+          # Fallback if jq not available
+          if [ $exit_code -eq 0 ]; then
+            echo "branch-valid=true" >> $GITHUB_OUTPUT
+            echo "commit-valid=true" >> $GITHUB_OUTPUT
+            overall_valid="true"
+          else
+            echo "branch-valid=false" >> $GITHUB_OUTPUT
+            echo "commit-valid=false" >> $GITHUB_OUTPUT
+            overall_valid="false"
+          fi
+        fi
+        
+        # Set status
+        if [ "$overall_valid" = "true" ]; then
+          echo "status=pass" >> $GITHUB_OUTPUT
+          echo "✅ Validation passed"
+        else
+          echo "status=fail" >> $GITHUB_OUTPUT
+          echo "❌ Validation failed"
+        fi
+        
+        # Display output
+        echo "$output"
+        
+        # Fail if requested and validation failed
+        if [ "${{ inputs.fail-on-error }}" = "true" ] && [ $exit_code -ne 0 ]; then
+          echo "::error::Git workflow validation failed"
+          exit 1
+        fi
+        
+        exit 0
