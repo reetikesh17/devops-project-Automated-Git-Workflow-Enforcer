@@ -23,6 +23,11 @@ cd devops-project-Automated-Git-Workflow-Enforcer
 
 # Install in development mode
 pip install -e .
+
+# Install Git hooks (recommended)
+./install-hooks.sh      # Linux/macOS
+# or
+install-hooks.bat       # Windows
 ```
 
 ### Using pip (after publishing)
@@ -189,6 +194,59 @@ Use in Jenkins:
 ```groovy
 sh 'python src/main/cli.py validate-branch ${BRANCH_NAME}'
 ```
+
+## Git Hooks
+
+The project includes Git hooks for automatic validation:
+
+- **commit-msg**: Validates commit messages before commit
+- **pre-commit**: Validates branch name before commit
+- **pre-push**: Validates branch name before push
+
+### Install Hooks
+
+```bash
+# Linux/macOS
+./install-hooks.sh
+
+# Windows
+install-hooks.bat
+```
+
+### Uninstall Hooks
+
+```bash
+# Linux/macOS
+./uninstall-hooks.sh
+
+# Windows
+uninstall-hooks.bat
+```
+
+See [Hooks Guide](docs/hooks-guide.md) for detailed documentation.
+
+## Testing
+
+Run the test suite:
+
+```bash
+# Install test dependencies
+pip install pytest pytest-cov
+
+# Run all tests
+pytest tests/
+
+# Run with coverage
+pytest tests/ --cov=src --cov-report=html
+```
+
+Test statistics:
+- Total tests: 103
+- Commit validator: 46 tests
+- Branch validator: 57 tests
+- Pass rate: 100%
+
+See [Testing Guide](docs/testing-guide.md) for detailed documentation.
 
 ## License
 
