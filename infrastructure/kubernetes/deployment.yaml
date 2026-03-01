@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: git-workflow-enforcer
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: git-workflow-enforcer
+  template:
+    metadata:
+      labels:
+        app: git-workflow-enforcer
+    spec:
+      containers:
+      - name: app
+        image: git-workflow-enforcer:latest
+        ports:
+        - containerPort: 8080

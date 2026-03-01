@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: git-workflow-enforcer-config
+data:
+  config.yaml: |
+    # Application configuration
+    environment: production
