@@ -2,9 +2,10 @@
 Output formatting utilities
 
 Provides consistent formatting for error messages, success messages,
-and validation results.
+and validation results. Includes CI/CD-friendly JSON output.
 """
 
+import json
 from .colors import Colors, colorize
 
 
@@ -171,6 +172,32 @@ def format_info(message):
         str: Formatted info message
     """
     return colorize(f"ℹ {message}", Colors.BLUE)
+
+
+def format_ci_output(validation_type, result):
+    """
+    Format output for CI/CD pipelines
+    
+    Args:
+        validation_type (str): Type of validation ('commit' or 'branch')
+        result (dict): Validation result
+        
+    Returns:
+        str: JSON formatted output
+    """
+    output = {
+        'type': validation_type,
+        'valid': result['valid'],
+        'status': 'pass' if result['valid'] else 'fail'
+    }
+    
+    if result['valid']:
+        output['validation_type'] = result.get('type')
+    else:
+        output['error'] = result.get('error')
+        output['error_type'] = result.get('error_type')
+    
+    return json.dumps(output, indent=2)
 
 
 def format_validation_report(branch_result, commit_result):

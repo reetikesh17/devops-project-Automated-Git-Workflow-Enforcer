@@ -39,6 +39,40 @@ class ColoredFormatter(logging.Formatter):
         return result
 
 
+def setup_ci_logger(name):
+    """
+    Setup logger for CI/CD mode
+    
+    Args:
+        name (str): Logger name
+        
+    Returns:
+        logging.Logger: Configured logger for CI
+    """
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.WARNING)  # Only warnings and errors in CI
+    
+    # Remove existing handlers
+    logger.handlers.clear()
+    
+    # Create console handler
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.WARNING)
+    
+    # Simple formatter for CI (no colors)
+    formatter = logging.Formatter(
+        '::%(levelname)s::%(message)s'  # GitHub Actions format
+    )
+    
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    
+    # Prevent propagation to root logger
+    logger.propagate = False
+    
+    return logger
+
+
 def setup_logger(name, level=logging.INFO, verbose=False):
     """
     Setup logger with consistent configuration

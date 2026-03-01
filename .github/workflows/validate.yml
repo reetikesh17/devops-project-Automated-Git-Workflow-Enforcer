@@ -1,0 +1,65 @@
+name: Validate Git Workflow
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main, develop]
+
+jobs:
+  validate:
+    name: Validate Branch and Commits
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history for commit validation
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+      
+      - name: Install dependencies
+        run: |
+          pip install pytest pytest-cov
+      
+      - name: Validate branch name
+        run: |
+          python src/main/cli.py --ci validate-branch "${{ github.head_ref || github.ref_name }}"
+      
+      - name: Validate commit messages
+        if: github.event_name == 'pull_request'
+        run: |
+          # Get all commits in the PR
+          for commit in $(git rev-list origin/${{ github.base_ref }}..${{ github.sha }}); do
+            message=$(git log --format=%B -n 1 $commit)
+            echo "Validating commit: $commit"
+            echo "$message" | python src/main/cli.py --ci validate-commit "$message" || exit 1
+          done
+      
+      - name: Validate latest commit (push)
+        if: github.event_name == 'push'
+        run: |
+          python src/main/cli.py --ci validate-commit "${{ github.event.head_commit.message }}"
+      
+      - name: Run tests
+        run: |
+          pytest tests/ -v
+      
+      - name: Generate validation report
+        if: always()
+        run: |
+          echo "## Validation Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Branch: \`${{ github.head_ref || github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Validate and capture output
+          if python src/main/cli.py --ci validate-all "${{ github.head_ref || github.ref_name }}" "${{ github.event.head_commit.message || 'PR validation' }}"; then
+            echo "✅ All validations passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Validation failed" >> $GITHUB_STEP_SUMMARY
+          fi
