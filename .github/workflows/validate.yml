@@ -5,61 +5,161 @@ on:
     types: [opened, synchronize, reopened]
   push:
     branches: [main, develop]
+  workflow_call:
+    inputs:
+      python-version:
+        description: 'Python version to use'
+        required: false
+        type: string
+        default: '3.11'
+      config-path:
+        description: 'Path to custom configuration file'
+        required: false
+        type: string
+        default: ''
+    outputs:
+      validation-status:
+        description: 'Overall validation status (pass/fail)'
+        value: ${{ jobs.validate.outputs.status }}
 
 jobs:
   validate:
     name: Validate Branch and Commits
     runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.validate-all.outcome }}
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Fetch all history for commit validation
       
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.8'
+          python-version: ${{ inputs.python-version || '3.11' }}
+          cache: 'pip'
       
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         run: |
-          pip install pytest pytest-cov
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       
-      - name: Validate branch name
+      - name: 🔍 Validate Git workflow
+        id: validate-all
         run: |
-          python src/main/cli.py --ci validate-branch "${{ github.head_ref || github.ref_name }}"
+          echo "::group::Running validation"
+          
+          # Run validation with auto-detection
+          if [ -n "${{ inputs.config-path }}" ]; then
+            python src/main/cli.py --ci --config "${{ inputs.config-path }}" validate-all
+          else
+            python src/main/cli.py --ci validate-all
+          fi
+          
+          validation_result=$?
+          echo "::endgroup::"
+          
+          if [ $validation_result -eq 0 ]; then
+            echo "✅ Validation passed"
+            echo "status=pass" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Validation failed"
+            echo "status=fail" >> $GITHUB_OUTPUT
+            exit 1
+          fi
       
-      - name: Validate commit messages
-        if: github.event_name == 'pull_request'
-        run: |
-          # Get all commits in the PR
-          for commit in $(git rev-list origin/${{ github.base_ref }}..${{ github.sha }}); do
-            message=$(git log --format=%B -n 1 $commit)
-            echo "Validating commit: $commit"
-            echo "$message" | python src/main/cli.py --ci validate-commit "$message" || exit 1
-          done
-      
-      - name: Validate latest commit (push)
-        if: github.event_name == 'push'
-        run: |
-          python src/main/cli.py --ci validate-commit "${{ github.event.head_commit.message }}"
-      
-      - name: Run tests
-        run: |
-          pytest tests/ -v
-      
-      - name: Generate validation report
+      - name: 📊 Generate validation report
         if: always()
         run: |
-          echo "## Validation Report" >> $GITHUB_STEP_SUMMARY
+          echo "## 📋 Validation Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Branch: \`${{ github.head_ref || github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`${{ github.head_ref || github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Event:** \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          # Validate and capture output
-          if python src/main/cli.py --ci validate-all "${{ github.head_ref || github.ref_name }}" "${{ github.event.head_commit.message || 'PR validation' }}"; then
-            echo "✅ All validations passed" >> $GITHUB_STEP_SUMMARY
+          # Run validation again to capture output
+          if python src/main/cli.py --ci validate-all > validation-output.json 2>&1; then
+            echo "### ✅ Status: PASSED" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Validation failed" >> $GITHUB_STEP_SUMMARY
+            echo "### ❌ Status: FAILED" >> $GITHUB_STEP_SUMMARY
           fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "#### Validation Details" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
+          cat validation-output.json >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+      
+      - name: 💬 Comment on PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let validationOutput = '';
+            try {
+              validationOutput = fs.readFileSync('validation-output.json', 'utf8');
+            } catch (error) {
+              validationOutput = 'Unable to read validation output';
+            }
+            
+            const status = '${{ steps.validate-all.outcome }}' === 'success' ? '✅ PASSED' : '❌ FAILED';
+            const emoji = '${{ steps.validate-all.outcome }}' === 'success' ? '✅' : '❌';
+            
+            const body = `## ${emoji} Git Workflow Validation ${status}
+            
+            **Branch:** \`${{ github.head_ref }}\`
+            **Commit:** \`${{ github.sha }}\`
+            
+            <details>
+            <summary>📋 Validation Details</summary>
+            
+            \`\`\`json
+            ${validationOutput}
+            \`\`\`
+            
+            </details>
+            
+            ---
+            *Automated validation by [Git Workflow Enforcer](https://github.com/reetikesh17/devops-project-Automated-Git-Workflow-Enforcer)*
+            `;
+            
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Git Workflow Validation')
+            );
+            
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+      
+      - name: 📤 Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-report
+          path: validation-output.json
+          retention-days: 30

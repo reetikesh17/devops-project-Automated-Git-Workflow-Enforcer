@@ -1,0 +1,48 @@
+# Example: Using the Git Workflow Enforcer as a reusable workflow
+#
+# This file demonstrates how to use the validate.yml workflow
+# in other repositories or workflows.
+
+name: Example - Reusable Workflow
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  # Example 1: Use with default settings
+  validate-default:
+    name: Validate with defaults
+    uses: ./.github/workflows/validate.yml
+  
+  # Example 2: Use with custom Python version
+  validate-custom-python:
+    name: Validate with Python 3.12
+    uses: ./.github/workflows/validate.yml
+    with:
+      python-version: '3.12'
+  
+  # Example 3: Use with custom config
+  validate-custom-config:
+    name: Validate with custom config
+    uses: ./.github/workflows/validate.yml
+    with:
+      python-version: '3.11'
+      config-path: 'custom-rules.json'
+  
+  # Example 4: Use validation status in another job
+  post-validation:
+    name: Post-validation actions
+    needs: validate-default
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check validation status
+        run: |
+          if [ "${{ needs.validate-default.outputs.validation-status }}" = "pass" ]; then
+            echo "✅ Validation passed - proceeding with deployment"
+          else
+            echo "❌ Validation failed - skipping deployment"
+            exit 1
+          fi
