@@ -1,8 +1,10 @@
 # No external dependencies required for core functionality
 # Python 3.8+ standard library is sufficient
 
-# Optional: For development and testing
-# pytest>=7.4.0
-# pytest-cov>=4.1.0
+# Development and testing dependencies
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Optional: Code quality tools
 # black>=23.7.0
 # flake8>=6.1.0
