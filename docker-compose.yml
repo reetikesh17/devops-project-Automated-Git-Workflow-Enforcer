@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Main validation service
+  enforcer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: git-workflow-enforcer:latest
+    container_name: git-workflow-enforcer
+    volumes:
+      # Mount current directory for validation
+      - .:/workspace:ro
+    working_dir: /workspace
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NO_COLOR=0  # Enable colors in output
+    command: python src/main/cli.py validate-all --ci
+  
+  # Development service with interactive shell
+  enforcer-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: git-workflow-enforcer:latest
+    container_name: git-workflow-enforcer-dev
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: /bin/bash
+    stdin_open: true
+    tty: true
+  
+  # Test runner service
+  enforcer-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: git-workflow-enforcer:latest
+    container_name: git-workflow-enforcer-test
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: pytest tests/ -v

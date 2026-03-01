@@ -1,0 +1,84 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# GitHub
+.github
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Tests
+tests/
+examples/
+pytest.ini
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CI/CD
+.travis.yml
+.gitlab-ci.yml
+Jenkinsfile
+
+# Hooks and scripts
+hooks/
+install-hooks.sh
+install-hooks.bat
+uninstall-hooks.sh
+uninstall-hooks.bat
+
+# Infrastructure
+infrastructure/
+pipelines/
+
+# Deliverables
+deliverables/
+presentations/
+
+# Monitoring
+monitoring/
+
+# Temporary files
+*.log
+*.tmp
+tmp/
+temp/
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Action files
+action.yml
+ACTION_README.md
+.github/workflows/example-reusable.yml
