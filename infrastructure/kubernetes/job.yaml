@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: git-workflow-enforcer-job
+  labels:
+    app: git-workflow-enforcer
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app: git-workflow-enforcer
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: enforcer
+        image: git-workflow-enforcer:test
+        imagePullPolicy: IfNotPresent
+        command:
+        - python
+        - -m
+        - src.main.cli
+        - validate-commit
+        - "feat: kubernetes job test"
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"

@@ -1,19 +1,47 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: git-enforcer
+  name: git-workflow-enforcer
+  labels:
+    app: git-workflow-enforcer
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: git-enforcer
+      app: git-workflow-enforcer
   template:
     metadata:
       labels:
-        app: git-enforcer
+        app: git-workflow-enforcer
     spec:
       containers:
-        - name: git-workflow-enforcer
-          image: git-workflow-enforcer:latest
-          imagePullPolicy: Never
-          args: ["--ci", "validate-all"]
+      - name: enforcer
+        image: git-workflow-enforcer:test
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo 'Git Workflow Enforcer Running'
+          while true; do
+            python -m src.main.cli validate-commit 'feat: periodic check'
+            sleep 300
+          done
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - import sys; sys.exit(0)
+          initialDelaySeconds: 10
+          periodSeconds: 30
