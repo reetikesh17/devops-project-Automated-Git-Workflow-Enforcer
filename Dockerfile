@@ -16,8 +16,8 @@ RUN apt-get update && \
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir --user -r requirements.txt
+# Install Python dependencies to a specific location
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # Stage 2: Runtime
 FROM python:3.11-slim
@@ -38,10 +38,10 @@ RUN apt-get update && \
     && apt-get clean
 
 # Copy Python packages from builder
-COPY --from=builder /root/.local /root/.local
+COPY --from=builder /install /usr/local
 
-# Make sure scripts in .local are usable
-ENV PATH=/root/.local/bin:$PATH
+# Set Python path
+ENV PYTHONPATH=/usr/local/lib/python3.11/site-packages:$PYTHONPATH
 
 # Copy application files
 COPY src/ ./src/
