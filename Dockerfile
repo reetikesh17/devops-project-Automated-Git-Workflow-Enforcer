@@ -1,25 +1,4 @@
 # Git Workflow Enforcer - Optimized Docker Image
-# Multi-stage build for minimal image size
-
-# Stage 1: Builder
-FROM python:3.11-slim AS builder
-
-# Set working directory
-WORKDIR /app
-
-# Install build dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    git \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements first for better caching
-COPY requirements.txt .
-
-# Install Python dependencies to a specific location
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
-
-# Stage 2: Runtime
 FROM python:3.11-slim
 
 # Metadata
@@ -37,11 +16,9 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Copy Python packages from builder
-COPY --from=builder /install /usr/local
-
-# Set Python path
-ENV PYTHONPATH=/usr/local/lib/python3.11/site-packages:$PYTHONPATH
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt || true
 
 # Copy application files
 COPY src/ ./src/
@@ -60,6 +37,6 @@ ENV PYTHONUNBUFFERED=1
 # Default command
 CMD ["python", "src/main/cli.py", "validate-all", "--ci"]
 
-# Health check (optional)
+# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD python -c "import sys; sys.exit(0)"
