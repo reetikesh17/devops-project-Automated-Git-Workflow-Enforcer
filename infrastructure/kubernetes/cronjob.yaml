@@ -4,34 +4,46 @@ metadata:
   name: git-workflow-enforcer-cron
   labels:
     app: git-workflow-enforcer
+    component: scheduled-validation
+  annotations:
+    description: "Scheduled validation job for Git Workflow Enforcer"
 spec:
   schedule: "0 0 * * *"
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
   concurrencyPolicy: Forbid
+  
   jobTemplate:
     spec:
       backoffLimit: 2
       ttlSecondsAfterFinished: 86400
+      
       template:
         metadata:
           labels:
             app: git-workflow-enforcer
+            component: scheduled-validation
         spec:
           restartPolicy: Never
+          
           containers:
           - name: enforcer
             image: git-workflow-enforcer:test
-            imagePullPolicy: IfNotPresent
+            imagePullPolicy: Never
+            
             command:
             - python
             - -m
             - src.main.cli
             - validate-commit
-            - "feat: scheduled validation"
+            - "feat: scheduled validation check"
+            
             env:
             - name: PYTHONUNBUFFERED
               value: "1"
+            - name: NO_COLOR
+              value: "1"
+            
             resources:
               requests:
                 memory: "128Mi"
@@ -39,3 +51,30 @@ spec:
               limits:
                 memory: "256Mi"
                 cpu: "200m"
+            
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities:
+                drop:
+                - ALL
+            
+            volumeMounts:
+            - name: config-volume
+              mountPath: /app/src/config
+              readOnly: true
+          
+          volumes:
+          - name: config-volume
+            configMap:
+              name: git-enforcer-config
+              items:
+              - key: rules.json
+                path: rules.json
+          
+          securityContext:
+            fsGroup: 1000
+            runAsNonRoot: true
+            runAsUser: 1000
