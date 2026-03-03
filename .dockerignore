@@ -1,10 +1,8 @@
 # Git
-.git
+.git/
 .gitignore
 .gitattributes
-
-# GitHub
-.github
+.github/
 
 # Documentation
 docs/
@@ -15,6 +13,7 @@ docs/
 tests/
 examples/
 pytest.ini
+.pytest_cache/
 
 # Python
 __pycache__/
@@ -26,12 +25,17 @@ __pycache__/
 dist/
 build/
 *.egg
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
 
 # Virtual environments
 venv/
 env/
 ENV/
-.venv
+.venv/
+virtualenv/
 
 # IDE
 .vscode/
@@ -39,15 +43,17 @@ ENV/
 *.swp
 *.swo
 *~
+.DS_Store
 
 # OS
-.DS_Store
 Thumbs.db
+desktop.ini
 
 # CI/CD
 .travis.yml
 .gitlab-ci.yml
 Jenkinsfile
+.circleci/
 
 # Hooks and scripts
 hooks/
@@ -59,26 +65,28 @@ uninstall-hooks.bat
 # Infrastructure
 infrastructure/
 pipelines/
-
-# Deliverables
-deliverables/
-presentations/
-
-# Monitoring
 monitoring/
+presentations/
+deliverables/
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Action files
+action.yml
+ACTION_README.md
+.github/workflows/
 
 # Temporary files
 *.log
 *.tmp
 tmp/
 temp/
+.cache/
 
-# Coverage
-.coverage
-htmlcov/
-.pytest_cache/
-
-# Action files
-action.yml
-ACTION_README.md
-.github/workflows/example-reusable.yml
+# Package managers
+node_modules/
+package-lock.json
+yarn.lock
