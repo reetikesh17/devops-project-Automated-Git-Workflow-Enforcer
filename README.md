@@ -241,12 +241,12 @@ pytest tests/ --cov=src --cov-report=html
 ```
 
 Test statistics:
-- Total tests: 103
-- Commit validator: 46 tests
-- Branch validator: 57 tests
+- Total tests: 40
+- Commit validator: 16 tests
+- Branch validator: 24 tests
 - Pass rate: 100%
 
-See [Testing Guide](docs/testing-guide.md) for detailed documentation.
+See [Testing Guide](TESTING-GUIDE.md) for detailed documentation.
 
 ## License
 
@@ -262,4 +262,3 @@ MIT License - see LICENSE file for details
 ## Support
 
 For issues and questions, please open an issue on GitHub.
-week1 stable
