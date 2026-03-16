@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Git Workflow Enforcer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+
+    /* NAV */
+    nav { background: #161b22; border-bottom: 1px solid #30363d; padding: 0 40px; display: flex; align-items: center; height: 56px; gap: 16px; }
+    nav .brand { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; color: #f0f6fc; text-decoration: none; }
+    nav .brand .logo { font-size: 20px; }
+    nav .nav-links { display: flex; gap: 24px; margin-left: 32px; }
+    nav .nav-links a { color: #8b949e; text-decoration: none; font-size: 14px; transition: color 0.2s; }
+    nav .nav-links a:hover { color: #f0f6fc; }
+    nav .nav-right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+    .btn { padding: 7px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; text-decoration: none; display: inline-block; transition: opacity 0.2s; }
+    .btn:hover { opacity: 0.85; }
+    .btn-outline { background: transparent; color: #c9d1d9; border: 1px solid #30363d; }
+    .btn-green { background: #238636; color: #fff; }
+    .btn-blue { background: #1f6feb; color: #fff; }
+
+    /* HERO */
+    .hero { text-align: center; padding: 90px 40px 70px; max-width: 860px; margin: 0 auto; }
+    .hero .badge { display: inline-block; background: #1f6feb22; color: #58a6ff; border: 1px solid #1f6feb55; border-radius: 20px; padding: 4px 14px; font-size: 12px; margin-bottom: 24px; }
+    .hero h1 { font-size: 52px; font-weight: 800; color: #f0f6fc; line-height: 1.15; margin-bottom: 20px; }
+    .hero h1 span { color: #58a6ff; }
+    .hero p { font-size: 18px; color: #8b949e; line-height: 1.7; max-width: 620px; margin: 0 auto 36px; }
+    .hero-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn-lg { padding: 12px 28px; font-size: 15px; border-radius: 8px; }
+
+    /* STATS BAR */
+    .stats-bar { background: #161b22; border-top: 1px solid #30363d; border-bottom: 1px solid #30363d; padding: 28px 40px; display: flex; justify-content: center; gap: 60px; flex-wrap: wrap; }
+    .stat { text-align: center; }
+    .stat .num { font-size: 28px; font-weight: 700; color: #58a6ff; }
+    .stat .lbl { font-size: 12px; color: #8b949e; margin-top: 4px; }
+
+    /* FEATURES */
+    .section { max-width: 1100px; margin: 0 auto; padding: 70px 40px; }
+    .section-title { text-align: center; font-size: 28px; font-weight: 700; color: #f0f6fc; margin-bottom: 10px; }
+    .section-sub { text-align: center; color: #8b949e; font-size: 15px; margin-bottom: 48px; }
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .feature-card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 24px; transition: border-color 0.2s; }
+    .feature-card:hover { border-color: #58a6ff44; }
+    .feature-card .icon { font-size: 28px; margin-bottom: 14px; }
+    .feature-card h3 { font-size: 15px; font-weight: 600; color: #f0f6fc; margin-bottom: 8px; }
+    .feature-card p { font-size: 13px; color: #8b949e; line-height: 1.6; }
+
+    /* FLOW */
+    .flow-section { background: #161b22; border-top: 1px solid #30363d; border-bottom: 1px solid #30363d; padding: 60px 40px; }
+    .flow-inner { max-width: 1000px; margin: 0 auto; }
+    .flow { display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: wrap; margin-top: 40px; }
+    .flow-step { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 18px 20px; text-align: center; width: 150px; }
+    .flow-step .step-icon { font-size: 26px; }
+    .flow-step .step-name { font-size: 12px; color: #58a6ff; font-weight: 600; margin-top: 8px; }
+    .flow-step .step-desc { font-size: 11px; color: #8b949e; margin-top: 4px; line-height: 1.4; }
+    .flow-arrow { color: #30363d; font-size: 22px; padding: 0 8px; }
+
+    /* TECH STACK */
+    .tech-grid { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 36px; }
+    .tech-tag { background: #161b22; border: 1px solid #30363d; border-radius: 20px; padding: 6px 16px; font-size: 13px; color: #c9d1d9; display: flex; align-items: center; gap: 6px; }
+
+    /* CTA */
+    .cta { text-align: center; padding: 80px 40px; }
+    .cta h2 { font-size: 32px; font-weight: 700; color: #f0f6fc; margin-bottom: 14px; }
+    .cta p { color: #8b949e; font-size: 15px; margin-bottom: 32px; }
+
+    /* FOOTER */
+    footer { background: #161b22; border-top: 1px solid #30363d; padding: 24px 40px; text-align: center; font-size: 12px; color: #8b949e; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="brand" href="/"><span class="logo">&#x1F512;</span> Git Workflow Enforcer</a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#flow">How it Works</a>
+    <a href="#stack">Tech Stack</a>
+  </div>
+  <div class="nav-right">
+    <a class="btn btn-outline" href="/login">Sign In</a>
+    <a class="btn btn-green" href="/login">Get Started</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="badge">&#x1F680; DevOps Automation Tool</div>
+  <h1>Enforce <span>Git Workflows</span><br/>Automatically</h1>
+  <p>Validate commit messages and branch names across your entire pipeline — from local Git hooks to Docker, Kubernetes, GitHub Actions, and Terraform.</p>
+  <div class="hero-btns">
+    <a class="btn btn-green btn-lg" href="/login">&#x25B6; Open Dashboard</a>
+    <a class="btn btn-outline btn-lg" href="https://github.com/reetikesh17/devops-project-Automated-Git-Workflow-Enforcer" target="_blank">&#x1F4C2; View on GitHub</a>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat"><div class="num">40</div><div class="lbl">Unit Tests</div></div>
+  <div class="stat"><div class="num">8</div><div class="lbl">Test Categories</div></div>
+  <div class="stat"><div class="num">5</div><div class="lbl">Enforcement Layers</div></div>
+  <div class="stat"><div class="num">100%</div><div class="lbl">Pass Rate</div></div>
+</div>
+
+<!-- FEATURES -->
+<div class="section" id="features">
+  <div class="section-title">Everything you need to enforce Git standards</div>
+  <div class="section-sub">One tool, five enforcement layers, zero bad commits.</div>
+  <div class="features">
+    <div class="feature-card">
+      <div class="icon">&#x1F4DD;</div>
+      <h3>Commit Message Validation</h3>
+      <p>Enforces Conventional Commits format — type, scope, description length, case, and punctuation rules.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">&#x1F33F;</div>
+      <h3>Branch Name Validation</h3>
+      <p>Validates feature, bugfix, hotfix, and release branches against ticket-ID patterns. Protects main/develop.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">&#x1FA9D;</div>
+      <h3>Git Hooks</h3>
+      <p>pre-commit, commit-msg, and pre-push hooks block bad commits at the source before they ever leave your machine.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">&#x1F433;</div>
+      <h3>Docker Integration</h3>
+      <p>Containerized validation environment ensures consistent enforcement regardless of developer machine setup.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">&#x26A1;</div>
+      <h3>GitHub Actions CI/CD</h3>
+      <p>Automated workflow validates every push and pull request to main and develop branches in the cloud.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">&#x2638;&#xFE0F;</div>
+      <h3>Kubernetes &amp; Terraform</h3>
+      <p>Scheduled CronJobs for periodic validation and Terraform-managed AWS infrastructure for scalable deployment.</p>
+    </div>
+  </div>
+</div>
+
+<!-- FLOW -->
+<div class="flow-section" id="flow">
+  <div class="flow-inner">
+    <div class="section-title">Enforcement Flow</div>
+    <div class="section-sub">Every commit passes through 5 layers of validation.</div>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="step-icon">&#x1FA9D;</div>
+        <div class="step-name">Git Hooks</div>
+        <div class="step-desc">Local enforcement on every commit &amp; push</div>
+      </div>
+      <div class="flow-arrow">&#x2192;</div>
+      <div class="flow-step">
+        <div class="step-icon">&#x1F433;</div>
+        <div class="step-name">Docker</div>
+        <div class="step-desc">Containerized consistent environment</div>
+      </div>
+      <div class="flow-arrow">&#x2192;</div>
+      <div class="flow-step">
+        <div class="step-icon">&#x26A1;</div>
+        <div class="step-name">GitHub Actions</div>
+        <div class="step-desc">CI/CD pipeline on push &amp; PR</div>
+      </div>
+      <div class="flow-arrow">&#x2192;</div>
+      <div class="flow-step">
+        <div class="step-icon">&#x2638;&#xFE0F;</div>
+        <div class="step-name">Kubernetes</div>
+        <div class="step-desc">Scheduled validation CronJobs</div>
+      </div>
+      <div class="flow-arrow">&#x2192;</div>
+      <div class="flow-step">
+        <div class="step-icon">&#x1F3D7;&#xFE0F;</div>
+        <div class="step-name">Terraform</div>
+        <div class="step-desc">IaC on AWS for scalable infra</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TECH STACK -->
+<div class="section" id="stack">
+  <div class="section-title">Tech Stack</div>
+  <div class="section-sub">Built with industry-standard DevOps tools.</div>
+  <div class="tech-grid">
+    <div class="tech-tag">&#x1F40D; Python 3.11</div>
+    <div class="tech-tag">&#x1F9EA; pytest</div>
+    <div class="tech-tag">&#x1F433; Docker</div>
+    <div class="tech-tag">&#x2638;&#xFE0F; Kubernetes</div>
+    <div class="tech-tag">&#x26A1; GitHub Actions</div>
+    <div class="tech-tag">&#x1F3D7;&#xFE0F; Terraform</div>
+    <div class="tech-tag">&#x2601;&#xFE0F; AWS</div>
+    <div class="tech-tag">&#x1F4BB; Flask</div>
+    <div class="tech-tag">&#x1FA9D; Git Hooks</div>
+    <div class="tech-tag">&#x1F4C4; Conventional Commits</div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta">
+  <h2>Ready to enforce your Git workflow?</h2>
+  <p>Sign in to the dashboard and run the full test suite live.</p>
+  <a class="btn btn-green btn-lg" href="/login">&#x25B6; Open Dashboard</a>
+</div>
+
+<footer>
+  Git Workflow Enforcer &mdash; DevOps Project &mdash; Built with Python, Docker, Kubernetes &amp; Terraform
+</footer>
+
+</body>
+</html>
