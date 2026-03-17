@@ -2,91 +2,70 @@
 
 ## CLI Commands
 
-### Validate Commit Message
-
 ```bash
+# Validate a commit message
 python -m src.main.cli validate-commit "feat: add new feature"
-```
 
-### Validate Branch Name
-
-```bash
+# Validate a branch name
 python -m src.main.cli validate-branch "feature/JIRA-123-description"
-```
 
-### Validate All
-
-```bash
+# Validate both at once
 python -m src.main.cli validate-all
-```
 
-### Options
-
-```bash
---config PATH    # Custom config file
---verbose        # Verbose output
---no-color       # Disable colors
---ci             # CI/CD mode
+# Options
+python -m src.main.cli --config custom-rules.json validate-commit "feat: test"
+python -m src.main.cli --verbose validate-branch "feature/TEST-001-example"
 ```
 
 ## Git Hooks
 
-Hooks are automatically installed in `.git/hooks/`:
+After running `install-hooks.bat` (or `install-hooks.sh`), hooks run automatically:
 
-- **pre-commit**: Validates before commit
-- **commit-msg**: Validates commit message
-- **pre-push**: Validates branch name
+- `pre-commit` — validates branch name before every commit
+- `commit-msg` — validates commit message before every commit
+- `pre-push` — validates branch name before every push
+
+To bypass (not recommended):
+```bash
+git commit --no-verify -m "message"
+```
+
+## Docker
+
+```bash
+docker run --rm git-workflow-enforcer:latest \
+  python -m src.main.cli validate-commit "feat: test"
+```
+
+## Kubernetes
+
+```bash
+# Deploy and run validation job
+kubectl apply -f infrastructure/kubernetes/configmap.yaml
+kubectl apply -f infrastructure/kubernetes/job.yaml
+
+# Check logs
+kubectl logs -l job-name=git-workflow-enforcer-job
+
+# Cleanup
+kubectl delete job git-workflow-enforcer-job
+```
 
 ## Configuration
 
-Edit `src/config/rules.json` to customize validation rules:
+Edit `src/config/rules.json`:
 
 ```json
 {
   "commits": {
     "types": ["feat", "fix", "docs", "chore"],
-    "descriptionLength": {
-      "min": 10,
-      "max": 100
-    }
+    "descriptionLength": { "min": 10, "max": 100 }
   },
   "branches": {
     "patterns": {
       "feature": "^feature/[A-Z]+-[0-9]+-[a-z0-9-]+$"
-    }
+    },
+    "protected": ["main", "master", "develop"]
   }
 }
 ```
-
-## Docker Usage
-
-```bash
-# Run validation
-docker run --rm git-workflow-enforcer:latest \
-  python -m src.main.cli validate-commit "feat: test"
-
-# With volume mount
-docker run --rm -v $(pwd):/workspace \
-  git-workflow-enforcer:latest \
-  python -m src.main.cli validate-all
-```
-
-## Kubernetes Usage
-
-```bash
-# Deploy
-kubectl apply -f infrastructure/kubernetes/
-
-# Check logs
-kubectl logs -l app=git-workflow-enforcer
-
-# Update ConfigMap
-kubectl edit configmap git-enforcer-config
-kubectl rollout restart deployment git-workflow-enforcer
-```
-
-## Examples
-
-See `examples/` directory for test scripts:
-- `test_commit_validator.py`
-- `test_branch_validator.py`

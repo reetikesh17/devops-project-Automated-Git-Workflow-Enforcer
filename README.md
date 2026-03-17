@@ -1,264 +1,128 @@
 # Automated Git Workflow Enforcer
 
-A Python CLI tool to enforce Git workflow standards by validating branch names and commit messages.
+A Python tool that enforces Git workflow standards by validating branch names and commit messages — across Git hooks, Docker, GitHub Actions, Kubernetes, and Terraform.
 
-## Features
+## What it does
 
-- ✅ Validate branch names against defined patterns
-- ✅ Validate commit messages (Conventional Commits format)
-- ✅ Clean CLI interface with argparse
-- ✅ Configurable rules via JSON
-- ✅ Proper exit codes for CI/CD integration
-- ✅ Structured logging support
-- ✅ Modular and extensible design
+- Validates commit messages against [Conventional Commits](https://www.conventionalcommits.org/) format
+- Validates branch names against defined patterns (feature, bugfix, hotfix, release)
+- Blocks bad commits at the source via Git hooks
+- Runs the same validation in Docker containers and CI/CD pipelines
 
-## Installation
-
-### From Source
+## Quick Start
 
 ```bash
-# Clone the repository
 git clone https://github.com/reetikesh17/devops-project-Automated-Git-Workflow-Enforcer.git
 cd devops-project-Automated-Git-Workflow-Enforcer
-
-# Install in development mode
-pip install -e .
-
-# Install Git hooks (recommended)
-./install-hooks.sh      # Linux/macOS
-# or
-install-hooks.bat       # Windows
+pip install -r requirements.txt
 ```
 
-### Using pip (after publishing)
+Install Git hooks:
+```bash
+install-hooks.bat        # Windows
+./install-hooks.sh       # Linux/macOS
+```
+
+## CLI Usage
 
 ```bash
-pip install git-workflow-enforcer
+# Validate a commit message
+python -m src.main.cli validate-commit "feat: add user authentication"
+
+# Validate a branch name
+python -m src.main.cli validate-branch "feature/JIRA-123-add-login"
 ```
 
-## Usage
+## Validation Rules
 
-### Validate Commit Message
+**Commit format:** `<type>: <description>`
 
-```bash
-python src/main/cli.py validate-commit "feat: add user authentication"
-```
+| Type | Purpose |
+|------|---------|
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `docs` | Documentation |
+| `refactor` | Code refactoring |
+| `test` | Tests |
+| `chore` | Maintenance |
+| `ci` | CI/CD changes |
 
-### Validate Branch Name
+Rules: description 10–100 chars, lowercase start, no trailing period.
 
-```bash
-python src/main/cli.py validate-branch feature/JIRA-123-add-login
-```
-
-### Validate Both
-
-```bash
-python src/main/cli.py validate-all feature/JIRA-123-login "feat: add login page"
-```
-
-### Options
-
-```bash
-# Use custom configuration file
-python src/main/cli.py --config custom-rules.json validate-commit "feat: new feature"
-
-# Enable verbose output
-python src/main/cli.py --verbose validate-branch feature/TEST-001-example
-```
-
-## Branch Naming Rules
+**Branch format:**
 
 | Type | Pattern | Example |
 |------|---------|---------|
-| Feature | `feature/<TICKET-ID>-<description>` | `feature/JIRA-123-user-auth` |
-| Bugfix | `bugfix/<TICKET-ID>-<description>` | `bugfix/PROJ-456-fix-login` |
-| Hotfix | `hotfix/<TICKET-ID>` | `hotfix/URGENT-789` |
+| Feature | `feature/<TICKET>-<desc>` | `feature/JIRA-123-user-auth` |
+| Bugfix | `bugfix/<TICKET>-<desc>` | `bugfix/PROJ-456-fix-login` |
+| Hotfix | `hotfix/<TICKET>` | `hotfix/URGENT-789` |
 | Release | `release/v<version>` | `release/v1.2.0` |
 
 Protected branches: `main`, `master`, `develop`
 
-## Commit Message Format
+## Running Tests
 
-Format: `<type>: <description>`
+```bash
+# Unit tests (40 total)
+python examples/test_commit_validator.py
+python examples/test_branch_validator.py
 
-Allowed types:
-- `feat` - New feature
-- `fix` - Bug fix
-- `chore` - Maintenance
-- `docs` - Documentation
-- `refactor` - Code refactoring
-- `test` - Tests
-- `ci` - CI/CD changes
-
-Rules:
-- Description: 10-100 characters
-- Start with lowercase
-- No period at the end
-
-Examples:
-```
-✓ feat: add user authentication module
-✓ fix: resolve null pointer in login handler
-✓ docs: update API documentation
-✗ Feature: Add login (wrong type)
-✗ feat: Add (too short)
-✗ feat: Add feature. (ends with period)
+# Full 8-category test suite
+cmd /c Final-test.bat
 ```
 
-## Exit Codes
+## Web Dashboard
 
-| Code | Meaning |
-|------|---------|
-| 0 | Success - validation passed |
-| 1 | Validation error - invalid format |
-| 2 | Configuration error - invalid config |
-| 3 | Runtime error - unexpected error |
-| 4 | Git error - git command failed |
-
-## Configuration
-
-Edit `src/config/rules.json` to customize validation rules:
-
-```json
-{
-  "branches": {
-    "patterns": {
-      "feature": "^feature/[A-Z]+-[0-9]+-[a-z0-9-]+$",
-      "bugfix": "^bugfix/[A-Z]+-[0-9]+-[a-z0-9-]+$"
-    },
-    "protected": ["main", "master", "develop"]
-  },
-  "commits": {
-    "types": ["feat", "fix", "chore", "docs", "refactor", "test", "ci"],
-    "descriptionLength": {
-      "min": 10,
-      "max": 100
-    }
-  }
-}
+```bash
+python ui/app.py
+# Open http://localhost:5000
 ```
+
+Login with `admin / admin123` or `demo / demo123`.
 
 ## Project Structure
 
 ```
 src/
-├── main/
-│   └── cli.py                    # CLI entry point
-├── validators/
-│   ├── __init__.py
-│   ├── commit_validator.py      # Commit message validator
-│   └── branch_validator.py      # Branch name validator
-└── config/
-    ├── __init__.py
-    ├── config_loader.py          # Configuration loader
-    └── rules.json                # Validation rules
+├── validators/          # Commit and branch validators
+├── config/              # rules.json + config loader
+└── main/cli.py          # CLI entry point
+hooks/                   # Git hook scripts
+infrastructure/
+├── kubernetes/          # K8s job, configmap, deployment
+└── terraform/           # AWS infrastructure (IaC)
+.github/workflows/       # GitHub Actions CI/CD
+ui/                      # Flask web dashboard
+examples/                # Test scripts
 ```
 
-## Development
+## Enforcement Layers
 
-### Run Tests
-
-```bash
-# Install development dependencies
-pip install pytest pytest-cov
-
-# Run tests
-pytest tests/
-
-# With coverage
-pytest --cov=src tests/
+```
+Git Hooks → Docker → GitHub Actions → Kubernetes → Terraform
 ```
 
-### Code Style
+Each layer runs the same validators, ensuring consistent enforcement from local dev to production.
 
-```bash
-# Format code
-black src/
+## Configuration
 
-# Lint code
-flake8 src/
+Edit `src/config/rules.json` to customize rules:
+
+```json
+{
+  "commits": {
+    "types": ["feat", "fix", "chore", "docs", "refactor", "test", "ci"],
+    "descriptionLength": { "min": 10, "max": 100 }
+  },
+  "branches": {
+    "patterns": {
+      "feature": "^feature/[A-Z]+-[0-9]+-[a-z0-9-]+$"
+    },
+    "protected": ["main", "master", "develop"]
+  }
+}
 ```
-
-## CI/CD Integration
-
-Use in GitHub Actions:
-
-```yaml
-- name: Validate commit
-  run: |
-    python src/main/cli.py validate-commit "${{ github.event.head_commit.message }}"
-```
-
-Use in Jenkins:
-
-```groovy
-sh 'python src/main/cli.py validate-branch ${BRANCH_NAME}'
-```
-
-## Git Hooks
-
-The project includes Git hooks for automatic validation:
-
-- **commit-msg**: Validates commit messages before commit
-- **pre-commit**: Validates branch name before commit
-- **pre-push**: Validates branch name before push
-
-### Install Hooks
-
-```bash
-# Linux/macOS
-./install-hooks.sh
-
-# Windows
-install-hooks.bat
-```
-
-### Uninstall Hooks
-
-```bash
-# Linux/macOS
-./uninstall-hooks.sh
-
-# Windows
-uninstall-hooks.bat
-```
-
-See [Hooks Guide](docs/hooks-guide.md) for detailed documentation.
-
-## Testing
-
-Run the test suite:
-
-```bash
-# Install test dependencies
-pip install pytest pytest-cov
-
-# Run all tests
-pytest tests/
-
-# Run with coverage
-pytest tests/ --cov=src --cov-report=html
-```
-
-Test statistics:
-- Total tests: 40
-- Commit validator: 16 tests
-- Branch validator: 24 tests
-- Pass rate: 100%
-
-See [Testing Guide](TESTING-GUIDE.md) for detailed documentation.
 
 ## License
 
-MIT License - see LICENSE file for details
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
-## Support
-
-For issues and questions, please open an issue on GitHub.
+MIT — see [LICENSE](LICENSE)
